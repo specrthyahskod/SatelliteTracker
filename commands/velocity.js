@@ -2,7 +2,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const axios = require('axios');
 
-// Optional: default satellite name-to-ID mapping
 const satelliteMap = {
   iss: 25544,
   hubble: 20580,
@@ -35,8 +34,7 @@ module.exports = {
     const lon = parseFloat(process.env.LON);
     const alt = parseFloat(process.env.ALT || '271');
     const apiKey = process.env.N2YO_API_KEY;
-
-    const url = `https://api.n2yo.com/rest/v1/satellite/positions/${id}/${lat}/${lon}/${alt}/1?apiKey=${apiKey}`;
+    const url = `https://api.n2yo.com/rest/v1/satellite/positions/${id}/${lat}/${lon}/${alt}/1&apiKey=${apiKey}`;
 
     await interaction.deferReply();
 
