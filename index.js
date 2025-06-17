@@ -4,19 +4,13 @@ const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
-// Initialize client with required intents
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildVoiceStates
-  ]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
 });
 
-// Attach schedulers (after client is declared)
 const startSatelliteScheduler = require('./scheduler/satellitePing');
 const startLaunchAlerts = require('./scheduler/launchAlert');
 
-// Command loading
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -31,10 +25,8 @@ for (const file of commandFiles) {
   }
 }
 
-// Bot ready
 client.once('ready', () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
-
   try {
     startSatelliteScheduler(client);
     console.log('🛰️ Satellite scheduler started');
@@ -50,7 +42,6 @@ client.once('ready', () => {
   }
 });
 
-// Interaction handler
 client.on('interactionCreate', async interaction => {
   try {
     if (interaction.isChatInputCommand()) {
@@ -64,7 +55,6 @@ client.on('interactionCreate', async interaction => {
       await command.execute(interaction);
     }
 
-    // ModMail button support
     if (interaction.isButton()) {
       console.log(`🔘 Button clicked: ${interaction.customId} by ${interaction.user.tag}`);
 
@@ -77,7 +67,6 @@ client.on('interactionCreate', async interaction => {
     }
   } catch (err) {
     console.error(`❌ Error in interaction (${interaction.commandName || interaction.customId}):`, err);
-
     try {
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp({ content: '❌ Error executing command.', ephemeral: true });
@@ -90,14 +79,15 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// Crash logging (highly recommended on Pterodactyl)
-process.on('uncaughtException', err => {
-  console.error('🔥 Uncaught Exception:', err);
-});
+// Crash logging
+process.on('uncaughtException', err => console.error('🔥 Uncaught Exception:', err));
+process.on('unhandledRejection', reason => console.error('⚠️ Unhandled Rejection:', reason));
 
-process.on('unhandledRejection', reason => {
-  console.error('⚠️ Unhandled Rejection:', reason);
-});
+// ✅ Token Check
+if (!process.env.DISCORD_TOKEN || process.env.DISCORD_TOKEN.length < 30) {
+  console.error('❌ DISCORD_TOKEN is missing or invalid. Check your .env or Pterodactyl env vars.');
+  process.exit(1);
+}
 
-// Login (always last)
+// Final login
 client.login(process.env.DISCORD_TOKEN);
