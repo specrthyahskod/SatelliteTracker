@@ -6,7 +6,7 @@ const facts = [
   "Supermassive black holes exist at the centers of most galaxies.",
   "Black holes were first predicted by Einstein's general relativity.",
   "Time slows near the event horizon of a black hole.",
-  "Black holes evaporate slowly through Hawking radiation."
+  "Black holes evaporate slowly through Hawking radiation.",
 ];
 
 module.exports = {
