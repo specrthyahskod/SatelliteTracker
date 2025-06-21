@@ -1,9 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-const fs = require('fs');
-const path = require('path');
-
 const ipDataPath = path.join(__dirname, '..', 'data', 'ip_storage.json');
 
 // Create the /data folder if it doesn't exist
