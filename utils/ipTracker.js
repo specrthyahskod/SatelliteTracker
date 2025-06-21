@@ -1,6 +1,22 @@
 const fs = require('fs');
 const path = require('path');
 
+const fs = require('fs');
+const path = require('path');
+
+const ipDataPath = path.join(__dirname, '..', 'data', 'ip_storage.json');
+
+// Create the /data folder if it doesn't exist
+const dataDir = path.dirname(ipDataPath);
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+// Create the JSON file if it doesn't exist
+if (!fs.existsSync(ipDataPath)) {
+  fs.writeFileSync(ipDataPath, JSON.stringify({}));
+}
+
 const ipDBPath = path.join(__dirname, '../data/ip_storage.json');
 
 // Ensure file exists
