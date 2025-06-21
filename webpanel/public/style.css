@@ -1,0 +1,9 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+}
+#viewer {
+  width: 100vw;
+  height: 100vh;
+}
