@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
-const { generateAndStoreOTP } = require('../utils/otpManager');
+const { generateAndStoreOTP } = require('../utils/otpmanager');
 
 module.exports = {
   data: new SlashCommandBuilder()

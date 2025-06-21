@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { verifyOTP } = require('../utils/otpManager');
+const { verifyOTP } = require('../utils/otpmanager');
 
 module.exports = {
   data: new SlashCommandBuilder()
