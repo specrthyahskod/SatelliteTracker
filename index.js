@@ -1,11 +1,18 @@
 console.log('👋 Satellite Bot: index.js started');
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, InteractionType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages
+  ],
+  partials: ['CHANNEL'] // Needed for DMs
 });
 
 const startSatelliteScheduler = require('./scheduler/satellitePing');
@@ -44,7 +51,7 @@ client.once('ready', () => {
 
 client.on('interactionCreate', async interaction => {
   try {
-    if (interaction.isChatInputCommand()) {
+    if (interaction.type === InteractionType.ApplicationCommand) {
       const command = client.commands.get(interaction.commandName);
       if (!command) {
         console.warn(`⚠️ Unknown command: /${interaction.commandName}`);
@@ -52,17 +59,24 @@ client.on('interactionCreate', async interaction => {
       }
 
       console.log(`📥 ${interaction.user.tag} used /${interaction.commandName}`);
-      await command.execute(interaction);
+      await command.execute(interaction, client);
     }
 
     if (interaction.isButton()) {
       console.log(`🔘 Button clicked: ${interaction.customId} by ${interaction.user.tag}`);
-
       if (interaction.customId === 'close_modmail') {
         await interaction.reply({ content: '🛑 Closing ticket...', ephemeral: true });
         setTimeout(() => {
           interaction.channel.delete().catch(console.error);
         }, 3000);
+      }
+    }
+
+    if (interaction.type === InteractionType.ModalSubmit) {
+      // Let verify.js handle the modal logic
+      const verifyCommand = client.commands.get('verify');
+      if (verifyCommand?.handleModal) {
+        await verifyCommand.handleModal(interaction, client);
       }
     }
   } catch (err) {
