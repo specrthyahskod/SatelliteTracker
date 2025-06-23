@@ -6,7 +6,7 @@ module.exports = {
     .setDescription('🪐 Explore exoplanets on a 3D interactive map'),
 
   async execute(interaction) {
-    const exoplanetMapURL = 'https://yourdomain.com/exoplanets'; // Replace with actual hosting URL
+    const exoplanetMapURL = 'https://helpful-donut-12f09e.netlify.app/exoplanets'; // Replace with actual hosting URL
 
     await interaction.reply({
       content: `🛰️ Click to explore exoplanets in 3D:\n🔗 ${exoplanetMapURL}`,
