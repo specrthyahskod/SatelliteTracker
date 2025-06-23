@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "outDir": "./webpanel/dist",
+    "rootDir": "./webpanel",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["webpanel/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
