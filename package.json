@@ -13,6 +13,11 @@
     "dotenv": "^16.5.0",
     "node-cron": "^4.1.0",
     "node-fetch": "^3.3.2",
+    "three": "^0.177.0",
     "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@types/three": "^0.177.0",
+    "typescript": "^5.8.3"
   }
 }
