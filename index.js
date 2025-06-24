@@ -1,6 +1,6 @@
 console.log('👋 Satellite Bot: index.js started');
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, InteractionType } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, InteractionType, Partials } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -12,12 +12,14 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages
   ],
-  partials: ['CHANNEL'] // Needed for DMs
+  partials: [Partials.Channel] // Needed for DMs
 });
 
+// Schedulers
 const startSatelliteScheduler = require('./scheduler/satellitePing');
 const startLaunchAlerts = require('./scheduler/launchAlert');
 
+// Command handler
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -32,6 +34,7 @@ for (const file of commandFiles) {
   }
 }
 
+// Bot ready
 client.once('ready', () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
   try {
@@ -49,8 +52,14 @@ client.once('ready', () => {
   }
 });
 
+// Button interaction handlers
+const handleButtonVolume = require('./handlers/buttonVolume');
+const handleMusicButtons = require('./handlers/musicButtons');
+
+// Interaction event
 client.on('interactionCreate', async interaction => {
   try {
+    // Slash Command
     if (interaction.type === InteractionType.ApplicationCommand) {
       const command = client.commands.get(interaction.commandName);
       if (!command) {
@@ -62,18 +71,24 @@ client.on('interactionCreate', async interaction => {
       await command.execute(interaction, client);
     }
 
+    // Button: Volume / Music
     if (interaction.isButton()) {
       console.log(`🔘 Button clicked: ${interaction.customId} by ${interaction.user.tag}`);
+
       if (interaction.customId === 'close_modmail') {
         await interaction.reply({ content: '🛑 Closing ticket...', ephemeral: true });
         setTimeout(() => {
           interaction.channel.delete().catch(console.error);
         }, 3000);
+      } else if (['volume_up', 'volume_down'].includes(interaction.customId)) {
+        return handleButtonVolume(interaction);
+      } else if (['music_play', 'music_pause', 'music_skip', 'music_stop'].includes(interaction.customId)) {
+        return handleMusicButtons(interaction);
       }
     }
 
+    // Modal submit (e.g. for /verify)
     if (interaction.type === InteractionType.ModalSubmit) {
-      // Let verify.js handle the modal logic
       const verifyCommand = client.commands.get('verify');
       if (verifyCommand?.handleModal) {
         await verifyCommand.handleModal(interaction, client);
@@ -97,7 +112,7 @@ client.on('interactionCreate', async interaction => {
 process.on('uncaughtException', err => console.error('🔥 Uncaught Exception:', err));
 process.on('unhandledRejection', reason => console.error('⚠️ Unhandled Rejection:', reason));
 
-// ✅ Token Check
+// Token check
 if (!process.env.DISCORD_TOKEN || process.env.DISCORD_TOKEN.length < 30) {
   console.error('❌ DISCORD_TOKEN is missing or invalid. Check your .env or Pterodactyl env vars.');
   process.exit(1);
