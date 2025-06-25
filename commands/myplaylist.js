@@ -1,6 +1,6 @@
 // commands/myplaylist.js
 const { SlashCommandBuilder } = require('discord.js');
-const generateGeminiPlaylist = require('../utils/geminiPlaylist');
+const generateGeminiPlaylist = require('../utils/gptPlaylist');
 
 module.exports = {
   data: new SlashCommandBuilder()
