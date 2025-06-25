@@ -1,9 +1,11 @@
 console.log('👋 Satellite Bot: index.js started');
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, InteractionType, Partials } = require('discord.js');
+
+const { Client, GatewayIntentBits, Collection, InteractionType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
+// ==== Client Setup ====
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -12,14 +14,14 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages
   ],
-  partials: [Partials.Channel] // Needed for DMs
+  partials: ['CHANNEL'] // For DMs
 });
 
-// Schedulers
+// ==== Load Scheduled Jobs ====
 const startSatelliteScheduler = require('./scheduler/satellitePing');
 const startLaunchAlerts = require('./scheduler/launchAlert');
 
-// Command handler
+// ==== Command Loader ====
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -34,9 +36,10 @@ for (const file of commandFiles) {
   }
 }
 
-// Bot ready
+// ==== Event: Ready ====
 client.once('ready', () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
+
   try {
     startSatelliteScheduler(client);
     console.log('🛰️ Satellite scheduler started');
@@ -52,26 +55,25 @@ client.once('ready', () => {
   }
 });
 
-// Button interaction handlers
-const handleButtonVolume = require('./handlers/buttonVolume');
+// ==== Button Handlers ====
+const handleVolumeButtons = require('./handlers/buttonVolume');
 const handleMusicButtons = require('./handlers/musicButtons');
 
-// Interaction event
+// ==== Event: Interaction Create ====
 client.on('interactionCreate', async interaction => {
   try {
-    // Slash Command
+    // Slash Commands
     if (interaction.type === InteractionType.ApplicationCommand) {
       const command = client.commands.get(interaction.commandName);
       if (!command) {
         console.warn(`⚠️ Unknown command: /${interaction.commandName}`);
         return;
       }
-
       console.log(`📥 ${interaction.user.tag} used /${interaction.commandName}`);
       await command.execute(interaction, client);
     }
 
-    // Button: Volume / Music
+    // Buttons
     if (interaction.isButton()) {
       console.log(`🔘 Button clicked: ${interaction.customId} by ${interaction.user.tag}`);
 
@@ -80,20 +82,28 @@ client.on('interactionCreate', async interaction => {
         setTimeout(() => {
           interaction.channel.delete().catch(console.error);
         }, 3000);
-      } else if (['volume_up', 'volume_down'].includes(interaction.customId)) {
-        return handleButtonVolume(interaction);
-      } else if (['music_play', 'music_pause', 'music_skip', 'music_stop'].includes(interaction.customId)) {
+        return;
+      }
+
+      // Volume Buttons
+      if (['volume_up', 'volume_down'].includes(interaction.customId)) {
+        return handleVolumeButtons(interaction);
+      }
+
+      // Music Buttons
+      if (['music_play', 'music_pause', 'music_skip', 'music_stop'].includes(interaction.customId)) {
         return handleMusicButtons(interaction);
       }
     }
 
-    // Modal submit (e.g. for /verify)
+    // Modal Handling
     if (interaction.type === InteractionType.ModalSubmit) {
       const verifyCommand = client.commands.get('verify');
       if (verifyCommand?.handleModal) {
         await verifyCommand.handleModal(interaction, client);
       }
     }
+
   } catch (err) {
     console.error(`❌ Error in interaction (${interaction.commandName || interaction.customId}):`, err);
     try {
@@ -108,15 +118,15 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// Crash logging
+// ==== Crash Logging ====
 process.on('uncaughtException', err => console.error('🔥 Uncaught Exception:', err));
 process.on('unhandledRejection', reason => console.error('⚠️ Unhandled Rejection:', reason));
 
-// Token check
+// ==== Token Check ====
 if (!process.env.DISCORD_TOKEN || process.env.DISCORD_TOKEN.length < 30) {
   console.error('❌ DISCORD_TOKEN is missing or invalid. Check your .env or Pterodactyl env vars.');
   process.exit(1);
 }
 
-// Final login
+// ==== Final Login ====
 client.login(process.env.DISCORD_TOKEN);
