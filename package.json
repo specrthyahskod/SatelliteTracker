@@ -17,7 +17,8 @@
     "node-fetch": "^3.3.2",
     "openai": "^5.7.0",
     "three": "^0.177.0",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "ytdl-core": "^4.11.5"
   },
   "devDependencies": {
     "@types/three": "^0.177.0",
