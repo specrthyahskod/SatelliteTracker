@@ -1,27 +1,47 @@
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
-const ytdl = require('ytdl-core');
 const ytSearch = require('yt-search');
-
-const queue = new Map();
+const youtubedl = require('youtube-dl-exec');
+const ffmpeg = require('fluent-ffmpeg');
+const { Readable } = require('stream');
 
 module.exports.play = async (interaction) => {
   const query = interaction.options.getString('query');
   const voiceChannel = interaction.member.voice.channel;
 
-  if (!voiceChannel) return await interaction.reply({ content: '❌ You need to be in a voice channel!', ephemeral: true });
+  if (!voiceChannel) return interaction.reply({ content: '❌ Join a voice channel first.', ephemeral: true });
 
-  await interaction.deferReply(); // Prevents "AlreadyReplied" error
+  await interaction.deferReply();
 
-  // 🔍 Search YouTube for video
   const result = await ytSearch(query);
-  const video = result.videos.length ? result.videos[0] : null;
+  const video = result.videos[0];
+  if (!video) return interaction.followUp({ content: '❌ No video found.', ephemeral: true });
 
-  if (!video) return await interaction.followUp({ content: '❌ No video found for your query.', ephemeral: true });
+  const url = video.url;
 
-  const stream = ytdl(video.url, { filter: 'audioonly' });
-  const resource = createAudioResource(stream);
+  // Get best audio stream URL
+  const streamInfo = await youtubedl(url, {
+    dumpSingleJson: true,
+    noWarnings: true,
+    noCallHome: true,
+    noCheckCertificate: true,
+    preferFreeFormats: true,
+    youtubeSkipDashManifest: true,
+  });
+
+  const audioUrl = streamInfo.url;
+
+  const ffmpegStream = ffmpeg(audioUrl)
+    .format('s16le')
+    .audioFrequency(48000)
+    .audioChannels(2)
+    .audioCodec('pcm_s16le')
+    .pipe();
+
+  const resource = createAudioResource(Readable.from(ffmpegStream), {
+    inputType: 'arbitrary',
+  });
+
   const player = createAudioPlayer();
-
   const connection = joinVoiceChannel({
     channelId: voiceChannel.id,
     guildId: voiceChannel.guild.id,
@@ -31,7 +51,9 @@ module.exports.play = async (interaction) => {
   connection.subscribe(player);
   player.play(resource);
 
-  player.on(AudioPlayerStatus.Idle, () => connection.destroy());
+  player.on(AudioPlayerStatus.Idle, () => {
+    connection.destroy();
+  });
 
   await interaction.followUp({
     content: `🎶 Now playing: **${video.title}**`,
