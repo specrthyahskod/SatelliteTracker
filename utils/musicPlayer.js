@@ -1,56 +1,39 @@
-const { createAudioPlayer, createAudioResource, joinVoiceChannel, AudioPlayerStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
+const ytSearch = require('yt-search');
 
 const queue = new Map();
 
-module.exports = {
-  play(interaction, url) {
-    const guildId = interaction.guild.id;
-    const voiceChannel = interaction.member.voice.channel;
-    if (!voiceChannel) return interaction.reply('❌ You must be in a voice channel.');
+module.exports.play = async (interaction) => {
+  const query = interaction.options.getString('query');
+  const voiceChannel = interaction.member.voice.channel;
 
-    const serverQueue = queue.get(guildId);
-    const stream = ytdl(url, { filter: 'audioonly' });
-    const resource = createAudioResource(stream);
-    const player = createAudioPlayer();
+  if (!voiceChannel) return await interaction.reply({ content: '❌ You need to be in a voice channel!', ephemeral: true });
 
-    const connection = joinVoiceChannel({
-      channelId: voiceChannel.id,
-      guildId: interaction.guild.id,
-      adapterCreator: interaction.guild.voiceAdapterCreator,
-    });
+  await interaction.deferReply(); // Prevents "AlreadyReplied" error
 
-    player.play(resource);
-    connection.subscribe(player);
+  // 🔍 Search YouTube for video
+  const result = await ytSearch(query);
+  const video = result.videos.length ? result.videos[0] : null;
 
-    player.on(AudioPlayerStatus.Idle, () => {
-      connection.destroy();
-      queue.delete(guildId);
-    });
+  if (!video) return await interaction.followUp({ content: '❌ No video found for your query.', ephemeral: true });
 
-    queue.set(guildId, { connection, player });
-    interaction.reply(`🎶 Now playing: ${url}`);
-  },
+  const stream = ytdl(video.url, { filter: 'audioonly' });
+  const resource = createAudioResource(stream);
+  const player = createAudioPlayer();
 
-  stop(interaction) {
-    const serverQueue = queue.get(interaction.guild.id);
-    if (serverQueue) {
-      serverQueue.player.stop();
-      serverQueue.connection.destroy();
-      queue.delete(interaction.guild.id);
-      interaction.reply('⏹️ Playback stopped.');
-    } else {
-      interaction.reply('🚫 No active playback.');
-    }
-  },
+  const connection = joinVoiceChannel({
+    channelId: voiceChannel.id,
+    guildId: voiceChannel.guild.id,
+    adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+  });
 
-  setVolume(interaction, volume) {
-    const serverQueue = queue.get(interaction.guild.id);
-    if (serverQueue) {
-      serverQueue.player.state.resource.volume.setVolume(volume);
-      interaction.reply(`🔊 Volume set to ${volume * 100}%`);
-    } else {
-      interaction.reply('🚫 No active playback.');
-    }
-  }
+  connection.subscribe(player);
+  player.play(resource);
+
+  player.on(AudioPlayerStatus.Idle, () => connection.destroy());
+
+  await interaction.followUp({
+    content: `🎶 Now playing: **${video.title}**`,
+  });
 };
