@@ -27,8 +27,8 @@ module.exports.play = async (interaction) => {
 
   await interaction.deferReply();
 
-  const getTrackTitle = require('./trackParser');
-  const query = await getTrackTitle(linkOrQuery);
+ const { parseTrack } = await import('./trackParser.mjs');
+ const query = await getTrackTitle(linkOrQuery);
 
   const videoUrl = await searchYouTube(query);
   const stream = ytdl(videoUrl, { filter: 'audioonly' });

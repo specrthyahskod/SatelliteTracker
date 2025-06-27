@@ -1,5 +1,6 @@
 const { getData } = require('spotify-url-info')(require('node-fetch'));
 const axios = require('axios');
+import fetch from 'node-fetch';
 
 module.exports = async function parseTrackFromLink(link) {
   let trackTitle = null;
