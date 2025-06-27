@@ -26,6 +26,7 @@ module.exports.play = async (interaction) => {
     noCheckCertificate: true,
     preferFreeFormats: true,
     youtubeSkipDashManifest: true,
+     cookies: './youtube.com_cookies.txt'
   });
 
   const audioUrl = streamInfo.url;
