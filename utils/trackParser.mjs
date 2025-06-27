@@ -1,8 +1,12 @@
-const { getData } = require('spotify-url-info')(require('node-fetch'));
-const axios = require('axios');
-import fetch from 'node-fetch';
+// trackParser.mjs
 
-module.exports = async function parseTrackFromLink(link) {
+import fetch from 'node-fetch';
+import axios from 'axios';
+import spotifyUrlInfo from 'spotify-url-info';
+
+const { getData } = spotifyUrlInfo(fetch);
+
+export default async function parseTrackFromLink(link) {
   let trackTitle = null;
 
   if (link.includes('spotify')) {
@@ -17,8 +21,8 @@ module.exports = async function parseTrackFromLink(link) {
     const match = res.data.match(/"SNG_TITLE":"(.*?)","ART_NAME":"(.*?)"/);
     if (match) trackTitle = `${match[2]} ${match[1]}`;
   } else {
-    trackTitle = link;
+    trackTitle = link; // Plain text search fallback
   }
 
   return trackTitle;
-};
+}
