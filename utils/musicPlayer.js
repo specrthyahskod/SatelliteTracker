@@ -1,51 +1,26 @@
+const ytSearch = require('yt-search');
 const ytdl = require('ytdl-core');
-const {
-  joinVoiceChannel,
-  createAudioPlayer,
-  createAudioResource,
-  AudioPlayerStatus
-} = require('@discordjs/voice');
-const { google } = require('googleapis');
-
-// Set up YouTube API
-const youtube = google.youtube({
-  version: 'v3',
-  auth: process.env.YOUTUBE_API_KEY,
-});
-
-async function searchYouTube(query) {
-  const res = await youtube.search.list({
-    q: query,
-    part: 'snippet',
-    maxResults: 1,
-    type: 'video',
-  });
-
-  const video = res.data.items[0];
-  if (!video) throw new Error('No YouTube results found');
-  return `https://www.youtube.com/watch?v=${video.id.videoId}`;
-}
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 
 module.exports.play = async (interaction) => {
   const linkOrQuery = interaction.options.getString('query');
   const voiceChannel = interaction.member.voice.channel;
 
-  if (!voiceChannel) {
+  if (!voiceChannel)
     return interaction.reply({ content: '❌ Join a voice channel first.', ephemeral: true });
-  }
 
   await interaction.deferReply();
 
-  const { default: parseTrack } = await import('./trackParser.mjs');
-  const query = await parseTrack(linkOrQuery); // ✅ This is the fix
+  const { parseTrack } = await import('./trackParser.mjs');
+  const query = await parseTrack(linkOrQuery);
 
-  if (!query) {
-    return interaction.followUp({ content: '❌ Could not resolve song title from input.', ephemeral: true });
-  }
+  const ytResult = await ytSearch(query);
+  const video = ytResult.videos.length ? ytResult.videos[0] : null;
 
-  const videoUrl = await searchYouTube(query);
-  const stream = ytdl(videoUrl, { filter: 'audioonly', highWaterMark: 1 << 25 });
+  if (!video)
+    return interaction.followUp({ content: '❌ No matching video found.', ephemeral: true });
 
+  const stream = ytdl(video.url, { filter: 'audioonly' });
   const resource = createAudioResource(stream);
   const player = createAudioPlayer();
 
@@ -60,5 +35,13 @@ module.exports.play = async (interaction) => {
 
   player.on(AudioPlayerStatus.Idle, () => connection.destroy());
 
-  await interaction.followUp({ content: `🎶 Now playing: **${query}**` });
+  await interaction.followUp({
+    embeds: [{
+      title: '🎶 Now Playing',
+      description: `**[${video.title}](${video.url})**`,
+      color: 0x1DB954,
+      footer: { text: `Requested by ${interaction.user.tag}` },
+      thumbnail: { url: video.thumbnail }
+    }]
+  });
 };
