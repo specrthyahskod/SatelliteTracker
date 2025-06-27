@@ -1,81 +1,58 @@
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
-const ytSearch = require('yt-search');
-const youtubedl = require('youtube-dl-exec');
-const ffmpeg = require('fluent-ffmpeg');
-const { Readable } = require('stream');
-const path = require('path');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+const SpotifyWebApi = require('spotify-web-api-node');
+const ytdl = require('ytdl-core');
 
-module.exports.play = async (interaction) => {
-  const query = interaction.options.getString('query');
-  const voiceChannel = interaction.member.voice.channel;
+const player = createAudioPlayer();
 
-  if (!voiceChannel) {
-    return interaction.reply({ content: '❌ Join a voice channel first.', ephemeral: true });
+const spotifyApi = new SpotifyWebApi({
+  clientId: process.env.SPOTIFY_CLIENT_ID,
+  clientSecret: process.env.SPOTIFY_CLIENT_SECRET
+});
+
+// Auth on startup
+(async () => {
+  try {
+    const data = await spotifyApi.clientCredentialsGrant();
+    spotifyApi.setAccessToken(data.body['access_token']);
+  } catch (error) {
+    console.error('Spotify auth error:', error);
   }
+})();
+
+async function play(interaction, query) {
+  const channel = interaction.member.voice.channel;
+  if (!channel) return interaction.reply({ content: 'Join a voice channel first.', ephemeral: true });
 
   await interaction.deferReply();
 
   try {
-    const result = await ytSearch(query);
-    const video = result.videos[0];
-    if (!video) {
-      return interaction.editReply({ content: '❌ No video found for your query.', ephemeral: true });
-    }
+    const data = await spotifyApi.searchTracks(query);
+    const track = data.body.tracks.items[0];
+    if (!track) return interaction.followUp({ content: 'No track found on Spotify.', ephemeral: true });
 
-    const videoUrl = video.url;
+    const previewUrl = track.preview_url;
 
-    const streamInfo = await youtubedl(videoUrl, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noCallHome: true,
-      noCheckCertificate: true,
-      preferFreeFormats: true,
-      youtubeSkipDashManifest: true,
-      cookies: path.join(__dirname, '../youtube.com_cookies.txt'),
-    });
-
-    const bestFormat = streamInfo.formats.find(f => f.acodec !== 'none' && f.vcodec === 'none');
-    if (!bestFormat) {
-      return interaction.editReply({ content: '❌ No valid audio format found.' });
-    }
-
-    const ffmpegStream = ffmpeg(bestFormat.url)
-      .format('s16le')
-      .audioFrequency(48000)
-      .audioChannels(2)
-      .audioCodec('pcm_s16le')
-      .on('error', err => {
-        console.error('❌ FFmpeg error:', err);
-        interaction.followUp({ content: '❌ FFmpeg failed to process the stream.' });
-      })
-      .pipe();
-
-    const resource = createAudioResource(Readable.from(ffmpegStream), {
-      inputType: 'arbitrary',
-    });
-
-    const player = createAudioPlayer();
     const connection = joinVoiceChannel({
-      channelId: voiceChannel.id,
-      guildId: voiceChannel.guild.id,
-      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+      channelId: channel.id,
+      guildId: channel.guild.id,
+      adapterCreator: channel.guild.voiceAdapterCreator
     });
 
     connection.subscribe(player);
-    player.play(resource);
 
-    player.on(AudioPlayerStatus.Idle, () => {
-      connection.destroy();
-    });
+    if (previewUrl) {
+      const resource = createAudioResource(previewUrl);
+      player.play(resource);
+      player.once(AudioPlayerStatus.Idle, () => connection.destroy());
 
-    await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
-
-    await interaction.editReply({
-      content: `🎶 Now playing: **${video.title}**`,
-    });
-
+      return interaction.followUp(`🎵 Now playing 30s preview: **${track.name}** by **${track.artists[0].name}**`);
+    } else {
+      return interaction.followUp('⚠️ This track has no preview. You need Spotify Premium to play full tracks.');
+    }
   } catch (err) {
-    console.error('❌ Play command error:', err);
-    await interaction.editReply({ content: '❌ Failed to play the track. YouTube might be blocking access or cookies are invalid.' });
+    console.error('Play error:', err);
+    return interaction.followUp('❌ Something went wrong.');
   }
-};
+}
+
+module.exports = { play };
