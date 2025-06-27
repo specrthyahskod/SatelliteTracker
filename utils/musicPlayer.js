@@ -1,58 +1,51 @@
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
-const SpotifyWebApi = require('spotify-web-api-node');
 const ytdl = require('ytdl-core');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+const { google } = require('googleapis');
 
-const player = createAudioPlayer();
-
-const spotifyApi = new SpotifyWebApi({
-  clientId: process.env.SPOTIFY_CLIENT_ID,
-  clientSecret: process.env.SPOTIFY_CLIENT_SECRET
+const youtube = google.youtube({
+  version: 'v3',
+  auth: process.env.YOUTUBE_API_KEY,
 });
 
-// Auth on startup
-(async () => {
-  try {
-    const data = await spotifyApi.clientCredentialsGrant();
-    spotifyApi.setAccessToken(data.body['access_token']);
-  } catch (error) {
-    console.error('Spotify auth error:', error);
-  }
-})();
+async function searchYouTube(query) {
+  const res = await youtube.search.list({
+    q: query,
+    part: 'snippet',
+    maxResults: 1,
+    type: 'video',
+  });
 
-async function play(interaction, query) {
-  const channel = interaction.member.voice.channel;
-  if (!channel) return interaction.reply({ content: 'Join a voice channel first.', ephemeral: true });
+  const video = res.data.items[0];
+  return `https://www.youtube.com/watch?v=${video.id.videoId}`;
+}
+
+module.exports.play = async (interaction) => {
+  const linkOrQuery = interaction.options.getString('query');
+  const voiceChannel = interaction.member.voice.channel;
+
+  if (!voiceChannel) return interaction.reply({ content: '❌ Join a voice channel first.', ephemeral: true });
 
   await interaction.deferReply();
 
-  try {
-    const data = await spotifyApi.searchTracks(query);
-    const track = data.body.tracks.items[0];
-    if (!track) return interaction.followUp({ content: 'No track found on Spotify.', ephemeral: true });
+  const getTrackTitle = require('./trackParser');
+  const query = await getTrackTitle(linkOrQuery);
 
-    const previewUrl = track.preview_url;
+  const videoUrl = await searchYouTube(query);
+  const stream = ytdl(videoUrl, { filter: 'audioonly' });
 
-    const connection = joinVoiceChannel({
-      channelId: channel.id,
-      guildId: channel.guild.id,
-      adapterCreator: channel.guild.voiceAdapterCreator
-    });
+  const resource = createAudioResource(stream);
+  const player = createAudioPlayer();
 
-    connection.subscribe(player);
+  const connection = joinVoiceChannel({
+    channelId: voiceChannel.id,
+    guildId: voiceChannel.guild.id,
+    adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+  });
 
-    if (previewUrl) {
-      const resource = createAudioResource(previewUrl);
-      player.play(resource);
-      player.once(AudioPlayerStatus.Idle, () => connection.destroy());
+  connection.subscribe(player);
+  player.play(resource);
 
-      return interaction.followUp(`🎵 Now playing 30s preview: **${track.name}** by **${track.artists[0].name}**`);
-    } else {
-      return interaction.followUp('⚠️ This track has no preview. You need Spotify Premium to play full tracks.');
-    }
-  } catch (err) {
-    console.error('Play error:', err);
-    return interaction.followUp('❌ Something went wrong.');
-  }
-}
+  player.on(AudioPlayerStatus.Idle, () => connection.destroy());
 
-module.exports = { play };
+  await interaction.followUp({ content: `🎶 Now playing: **${query}**` });
+};

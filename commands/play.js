@@ -4,10 +4,13 @@ const { play } = require('../utils/musicPlayer');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('play')
-    .setDescription('Play a song from Spotify (preview only)')
-    .addStringOption(opt => opt.setName('query').setDescription('Song name').setRequired(true)),
+    .setDescription('🎵 Play a song from query or music link')
+    .addStringOption(option =>
+      option.setName('query')
+        .setDescription('Song name or Spotify/Apple/Deezer link')
+        .setRequired(true)
+    ),
   async execute(interaction) {
-    const query = interaction.options.getString('query');
-    await play(interaction, query);
+    await play(interaction);
   }
 };
