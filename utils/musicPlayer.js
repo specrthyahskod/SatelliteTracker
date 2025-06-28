@@ -15,7 +15,7 @@ module.exports.play = async (interaction) => {
 
   try {
     // ✅ Import here (inside async function)
-    const { default: parseTrack } = await import('./trackParser.mjs');
+    const { default: parseTrack } = await import('./trackParser.js');
     const query = await parseTrack(input);
     const result = await yts(query);
     const video = result.videos[0];
