@@ -17,7 +17,8 @@ module.exports.play = async (interaction) => {
   const video = res.videos[0];
   if (!video) return interaction.followUp({ content: '❌ No video found.', ephemeral: true });
 
-  const stream = ytdl(video.url, { filter: 'audioonly' });
+  const info = await ytdl.getInfo(video.url);
+  const stream = ytdl.downloadFromInfo(info, { filter: 'audioonly' });
   const resource = createAudioResource(stream);
   const player = createAudioPlayer();
 
