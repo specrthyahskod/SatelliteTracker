@@ -2,7 +2,6 @@ const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerSta
 const { EmbedBuilder } = require('discord.js');
 const yts = require('yt-search');
 const ytdl = require('ytdl-core');
-const { default: parseTrack } = await import('./trackParser.mjs');
 
 module.exports.play = async (interaction) => {
   const input = interaction.options.getString('query');
@@ -15,6 +14,8 @@ module.exports.play = async (interaction) => {
   await interaction.deferReply();
 
   try {
+    // ✅ Import here (inside async function)
+    const { default: parseTrack } = await import('./trackParser.mjs');
     const query = await parseTrack(input);
     const result = await yts(query);
     const video = result.videos[0];
@@ -23,7 +24,6 @@ module.exports.play = async (interaction) => {
       return interaction.followUp({ content: '❌ No matching video found on YouTube.', ephemeral: true });
     }
 
-    // Block VEVO and long videos (optional)
     if (
       video.author.name.toLowerCase().includes('vevo') ||
       video.duration.seconds > 600
@@ -34,18 +34,11 @@ module.exports.play = async (interaction) => {
       });
     }
 
-    // Fetch stream
-    let stream;
-    try {
-      stream = ytdl(video.url, {
-        filter: 'audioonly',
-        quality: 'highestaudio',
-        highWaterMark: 1 << 25,
-      });
-    } catch (err) {
-      console.error('❌ ytdl-core error:', err);
-      return interaction.followUp({ content: '❌ Could not fetch stream. Try another track.', ephemeral: true });
-    }
+    const stream = ytdl(video.url, {
+      filter: 'audioonly',
+      quality: 'highestaudio',
+      highWaterMark: 1 << 25,
+    });
 
     const resource = createAudioResource(stream);
     const player = createAudioPlayer();
@@ -71,6 +64,7 @@ module.exports.play = async (interaction) => {
       .setFooter({ text: `Requested by ${interaction.user.username}` });
 
     await interaction.followUp({ embeds: [embed] });
+
   } catch (err) {
     console.error('❌ Play command failed:', err);
     await interaction.followUp({ content: '❌ Could not play the song.', ephemeral: true });
