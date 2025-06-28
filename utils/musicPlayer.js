@@ -1,7 +1,7 @@
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
-const fetchStream = require('./fetchStream');
-const yts = require('yt-search');
+const ytdl = require('ytdl-core');
+const ytSearch = require('yt-search');
 
 module.exports.play = async (interaction) => {
   const input = interaction.options.getString('query');
@@ -14,15 +14,29 @@ module.exports.play = async (interaction) => {
   await interaction.deferReply();
 
   try {
-    const { default: parseTrack } = await import('./trackParser.mjs');
-    const query = await parseTrack(input);
+    const isValidUrl = input.startsWith('http://') || input.startsWith('https://');
+    let videoUrl = input;
+    let videoInfo = null;
 
-    const result = await yts(query);
-    const video = result.videos[0];
-    if (!video) return interaction.followUp({ content: '❌ No video found.', ephemeral: true });
+    if (!isValidUrl || !ytdl.validateURL(input)) {
+      // Search YouTube for the song
+      const searchResult = await ytSearch(input);
+      if (!searchResult.videos.length) {
+        return interaction.followUp({ content: '❌ No video found.', ephemeral: true });
+      }
+      videoInfo = searchResult.videos[0];
+      videoUrl = videoInfo.url;
+    } else {
+      const info = await ytdl.getInfo(input);
+      videoInfo = {
+        title: info.videoDetails.title,
+        thumbnail: info.videoDetails.thumbnails[0].url,
+        url: info.videoDetails.video_url
+      };
+    }
 
-    const stream = await fetchStream(video.url);
-    const resource = createAudioResource(stream, { inputType: 'arbitrary' });
+    const stream = ytdl(videoUrl, { filter: 'audioonly', highWaterMark: 1 << 25 });
+    const resource = createAudioResource(stream);
     const player = createAudioPlayer();
 
     const connection = joinVoiceChannel({
@@ -40,12 +54,13 @@ module.exports.play = async (interaction) => {
 
     const embed = new EmbedBuilder()
       .setTitle('🎶 Now Playing')
-      .setDescription(`[${video.title}](${video.url})`)
-      .setColor('Green')
-      .setThumbnail(video.thumbnail)
+      .setDescription(`[${videoInfo.title}](${videoInfo.url})`)
+      .setColor('Blue')
+      .setThumbnail(videoInfo.thumbnail)
       .setFooter({ text: `Requested by ${interaction.user.username}` });
 
     await interaction.followUp({ embeds: [embed] });
+
   } catch (err) {
     console.error('❌ Play command failed:', err);
     await interaction.followUp({ content: '❌ Could not play the song.', ephemeral: true });
