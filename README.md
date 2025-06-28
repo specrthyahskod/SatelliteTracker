@@ -11,6 +11,7 @@
 - `/lunarcrater` — Visualize real-time lunar craters in stunning 3D
 - `/spacefact` — Get rare cosmic facts powered by machine learning
 - `/verify` — Encrypted OTP and IP-secure identity verification system
+- `/play <song_name>` - Plays a beautiful song sleected by the user
 
 ### 🚀 Real-Time Space Intelligence
 - `/isslocation`, `/satellite`, `/nextpass` — Track ISS and other satellites live
