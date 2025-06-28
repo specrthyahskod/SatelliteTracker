@@ -1,8 +1,8 @@
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
-const fetchStream = require('./fetchStream'); // yt-dlp based audio fetcher
-const { default: parseTrack } = await import('./trackParser.mjs');
-const { default: yts } = await import('yt-search');
+const fetchStream = require('./fetchStream');
+
+const yts = require('yt-search');
 
 module.exports.play = async (interaction) => {
   const input = interaction.options.getString('query');
@@ -15,7 +15,8 @@ module.exports.play = async (interaction) => {
   await interaction.deferReply();
 
   try {
-    const query = await parseTrack(input); // parses spotify/apple/deezer or fallback
+    const { default: parseTrack } = await import('./trackParser.mjs'); // ✅ moved inside function
+    const query = await parseTrack(input);
     const result = await yts(query);
     const video = result.videos[0];
 
@@ -23,7 +24,7 @@ module.exports.play = async (interaction) => {
       return interaction.followUp({ content: '❌ No video found.', ephemeral: true });
     }
 
-    const stream = await fetchStream(video.url); // uses yt-dlp behind scenes
+    const stream = await fetchStream(video.url);
     const resource = createAudioResource(stream, { inputType: 'arbitrary' });
     const player = createAudioPlayer();
 
@@ -53,3 +54,4 @@ module.exports.play = async (interaction) => {
     await interaction.followUp({ content: '❌ Could not play the song.', ephemeral: true });
   }
 };
+
