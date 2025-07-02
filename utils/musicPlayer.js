@@ -2,6 +2,8 @@ const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerSta
 const { EmbedBuilder } = require('discord.js');
 const ytdl = require('ytdl-core');
 const ytSearch = require('yt-search');
+const fetchAudioStreamUrl = require('./fetchStream');
+const axios = require('axios');
 
 module.exports.play = async (interaction) => {
   const input = interaction.options.getString('query');
@@ -35,7 +37,17 @@ module.exports.play = async (interaction) => {
       };
     }
 
-    const stream = ytdl(videoUrl, { filter: 'audioonly', highWaterMark: 1 << 25 });
+    let stream;
+    try {
+      stream = ytdl(videoUrl, { filter: 'audioonly', highWaterMark: 1 << 25 });
+    } catch (err) {
+      // ytdl-core failed, fallback to yt-dlp
+      console.warn('ytdl-core failed, trying yt-dlp:', err.message);
+      const directUrl = await fetchAudioStreamUrl(videoUrl);
+      const response = await axios.get(directUrl, { responseType: 'stream' });
+      stream = response.data;
+    }
+
     const resource = createAudioResource(stream);
     const player = createAudioPlayer();
 
