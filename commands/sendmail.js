@@ -1,70 +1,40 @@
-// commands/sendemail.js
+// commands/sendmail.js
+const { Resend } = require('@resend/node');
 
-const { SlashCommandBuilder } = require('discord.js');
-const nodemailer = require('nodemailer');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('sendemail')
-    .setDescription('📤 Send a secure email (Admin Level 3-X only)')
-    .addStringOption(opt =>
-      opt.setName('to')
-        .setDescription('Recipient email address')
-        .setRequired(true))
-    .addStringOption(opt =>
-      opt.setName('subject')
-        .setDescription('Email subject')
-        .setRequired(true))
-    .addStringOption(opt =>
-      opt.setName('message')
-        .setDescription('Email message content')
-        .setRequired(true)),
-
+  data: {
+    name: 'sendemail',
+    description: 'Send an email (Admin only)',
+    options: [
+      { name: 'to', type: 3, required: true, description: 'Recipient email' },
+      { name: 'subject', type: 3, required: true, description: 'Email subject' },
+      { name: 'body', type: 3, required: true, description: 'Email content' }
+    ]
+  },
   async execute(interaction) {
-    const authorizedRoleId = '1392043566997573716';
-
-    // 🔒 Role verification
-    const hasClearance = interaction.member.roles.cache.has(authorizedRoleId);
-    if (!hasClearance) {
-      return interaction.reply({
-        content: '🚫 You do not have **Level 3-X clearance** to send emails.',
-        ephemeral: true
-      });
+    const role = interaction.guild.roles.cache.get('1392043566997573716');
+    if (!interaction.member.roles.cache.has(role.id)) {
+      return interaction.reply({ content: '❌ You do not have permission.', ephemeral: true });
     }
 
     const to = interaction.options.getString('to');
     const subject = interaction.options.getString('subject');
-    const message = interaction.options.getString('message');
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT) || 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
-    const mailOptions = {
-      from: `"Satellite Bot" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      text: message
-    };
+    const text = interaction.options.getString('body');
 
     try {
-      await transporter.sendMail(mailOptions);
-      await interaction.reply({
-        content: `📧 Email successfully sent to **${to}**.`,
-        ephemeral: true
+      await resend.emails.send({
+        from: 'Bot Mailer <onboarding@resend.dev>',
+        to,
+        subject,
+        text
       });
-    } catch (err) {
-      console.error('❌ Email send failed:', err);
-      await interaction.reply({
-        content: '❌ Failed to send email. Please check the SMTP configuration or logs.',
-        ephemeral: true
-      });
+
+      await interaction.reply({ content: '✅ Email sent successfully!', ephemeral: true });
+    } catch (error) {
+      console.error('❌ Email send failed:', error);
+      await interaction.reply({ content: `❌ Email failed: ${error.message}`, ephemeral: true });
     }
   }
 };
