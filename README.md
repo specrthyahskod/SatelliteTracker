@@ -1,6 +1,6 @@
 # 🛰️ Satellite Bot
 
-**Satellite Bot** is your all-in-one intelligent cosmic assistant on Discord — a futuristic fusion of **real-time space data**, **AI-powered commands**, and **immersive multimedia experiences**. Whether you're a space enthusiast, science geek, or just want a smart companion, Satellite Bot brings the universe to your fingertips.
+**Satellite Tracker Bot** is your all-in-one intelligent cosmic assistant on Discord — a futuristic fusion of **real-time space data**, **AI-powered commands**, and **immersive multimedia experiences**. Whether you're a space enthusiast, science geek, or just want a smart companion, Satellite Bot brings the universe to your fingertips.
 
 ---
 
