@@ -43,6 +43,7 @@
 - ✅ IP-verified user authentication
 - ✅ Secure OTP layer over Discord credentials
 - ✅ Audit logging for verification attempts
+- ✅ Strengthens your server security with a 3-layer exponential alert system.
 
 ---
 
@@ -50,7 +51,7 @@
 
 - **Node.js + Discord.js v14**
 - **WebSockets + Express + OpenCV for gesture control**
-- **Google Gemini API for AI**
+- **Google Gemini API for AI, Spotify's API, Stellarlinik's API**
 - **NASA, OpenWeather, SpaceX, and custom APIs**
 - **Three.js + WebGL for interactive 3D visualization**
 
