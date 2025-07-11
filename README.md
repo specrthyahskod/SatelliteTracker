@@ -11,7 +11,8 @@
 - `/lunarcrater` — Visualize real-time lunar craters in stunning 3D
 - `/spacefact` — Get rare cosmic facts powered by machine learning
 - `/verify` — Encrypted OTP and IP-secure identity verification system
-- `/play <song_name>` - Plays a beautiful song sleected by the user
+- `/play <song_name>` - Plays a beautiful song selected by the user
+- `/sendemail <to> <subject> <text>` - Send an email to a user with a benefactor email ID, report any problem to satellitetrackerbot@gmail.com, the same way.
 
 ### 🚀 Real-Time Space Intelligence
 - `/isslocation`, `/satellite`, `/nextpass` — Track ISS and other satellites live
@@ -42,6 +43,7 @@
 - ✅ IP-verified user authentication
 - ✅ Secure OTP layer over Discord credentials
 - ✅ Audit logging for verification attempts
+- ✅ Strengthens your server security with a 3-layer exponential alert system.
 
 ---
 
@@ -49,7 +51,7 @@
 
 - **Node.js + Discord.js v14**
 - **WebSockets + Express + OpenCV for gesture control**
-- **Google Gemini API for AI**
+- **Google Gemini API for AI, Spotify's API, Stellarlinik's API**
 - **NASA, OpenWeather, SpaceX, and custom APIs**
 - **Three.js + WebGL for interactive 3D visualization**
 
