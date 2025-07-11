@@ -19,7 +19,7 @@
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.5",
     "openai": "^5.7.0",
-    "resend": "github:resendlabs/resend-node",
+    "resend": "^4.6.0",
     "spotify-url-info": "^3.2.18",
     "spotify-web-api-node": "^5.0.2",
     "three": "^0.177.0",

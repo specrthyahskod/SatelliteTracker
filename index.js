@@ -24,16 +24,24 @@ const startLaunchAlerts = require('./scheduler/launchAlert');
 // ==== Command Loader ====
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const commandFiles = fs.readdirSync(path.join(__dirname, 'commands')).filter(file => file.endsWith('.js') || file.endsWith('.mjs'));
 
 for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  if ('data' in command && 'execute' in command) {
-    client.commands.set(command.data.name, command);
-    console.log(`✅ Loaded command: /${command.data.name}`);
-  } else {
-    console.warn(`⚠️ Skipped ${file} — missing "data" or "execute"`);
-  }
+  const filePath = path.join(commandsPath, file);
+
+let command;
+if (file.endsWith('.mjs')) {
+  command = await import(`file://${filePath}`);
+} else {
+  command = require(filePath);
+}
+
+if ('data' in command && 'execute' in command) {
+  client.commands.set(command.data.name, command);
+  console.log(`✅ Loaded command: /${command.data.name}`);
+} else {
+  console.warn(`⚠️ Skipped ${file} — missing "data" or "execute"`);
+ } 
 }
 
 // ==== Event: Ready ====
