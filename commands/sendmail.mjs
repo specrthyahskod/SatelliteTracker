@@ -44,7 +44,7 @@ export async function execute(interaction) {
 
   try {
     const response = await resend.emails.send({
-      from: 'YourBot <bot@yourdomain.com>', // Replace with verified sender
+      from: 'onboarding@resend.dev',
       to,
       subject,
       html: `<p>${body}</p>`,
